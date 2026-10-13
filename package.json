@@ -1,0 +1,13 @@
+{
+  "name": "snow-white-mine",
+  "version": "1.0.0",
+  "description": "Белоснежка и гномы: онлайн-игра на память для друзей",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

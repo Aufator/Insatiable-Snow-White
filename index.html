@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Белоснежка и гномы</title>
+<style>
+:root{
+  --night:#15113a;
+  --rock:#262a5a;
+  --rock-hi:#3a4080;
+  --lantern:#f2b84b;
+  --lantern-deep:#b97d12;
+  --parchment:#f7ebcb;
+  --ink:#2a1d3f;
+  --good:#7be0a4;
+  --bad:#ff6b87;
+  --gw:max(240px,min(calc(100vw - 24px),420px,calc((100dvh - 350px)/1.2)));
+  --serif:'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html,body{margin:0;height:100%;overflow:hidden}
+body{
+  font-family:var(--serif);color:var(--parchment);
+  background:
+    radial-gradient(1.5px 1.5px at 12% 18%,#fff8 50%,transparent 51%),
+    radial-gradient(1.5px 1.5px at 78% 9%,#fff7 50%,transparent 51%),
+    radial-gradient(1px 1px at 55% 30%,#fff6 50%,transparent 51%),
+    radial-gradient(1px 1px at 90% 55%,#fff5 50%,transparent 51%),
+    radial-gradient(120% 80% at 50% -10%,#2f2a78 0%,var(--night) 65%);
+}
+.screen{display:none;height:100dvh;flex-direction:column;align-items:center;padding:max(10px,env(safe-area-inset-top)) 12px max(10px,env(safe-area-inset-bottom));overflow-y:auto}
+.screen.active{display:flex}
+
+/* ---------- кнопки и поля ---------- */
+button,input{font-family:var(--serif)}
+.primary{
+  background:linear-gradient(#ffd978,#efb03a);color:var(--ink);border:0;border-radius:14px;
+  padding:12px 20px;font-size:17px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 0 var(--lantern-deep),0 8px 18px #0006;transition:transform .08s,box-shadow .08s,opacity .2s;
+}
+.primary:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--lantern-deep)}
+.primary:disabled{opacity:.38;cursor:default}
+.primary.alt{background:linear-gradient(#5560b4,#3a4290);color:var(--parchment);box-shadow:0 4px 0 #20255a,0 8px 18px #0006}
+.ghost{background:#ffffff14;color:var(--parchment);border:1px solid #ffffff26;border-radius:12px;width:44px;height:44px;font-size:20px;cursor:pointer}
+.linkbtn{background:none;border:0;color:var(--parchment);opacity:.7;text-decoration:underline;font-size:15px;padding:8px;cursor:pointer}
+input.txt{
+  background:#ffffff12;border:1px solid #ffffff2a;color:var(--parchment);border-radius:10px;padding:11px 12px;font-size:17px;text-align:center;width:min(280px,100%)
+}
+input.txt::placeholder{color:#f7ebcb77}
+:focus-visible{outline:3px solid var(--lantern);outline-offset:2px}
+.lbl{font-size:14px;opacity:.75}
+.err{color:var(--bad);font-size:15px;min-height:20px;text-align:center}
+
+/* ---------- старт ---------- */
+#home{justify-content:center;gap:10px;text-align:center}
+.logo{font-size:44px;letter-spacing:6px}
+h1{margin:0;font-size:32px;line-height:1.1;color:var(--lantern);text-shadow:0 3px 0 #0006,0 0 22px #f2b84b55}
+.sub{margin:0 0 6px;opacity:.8;font-size:15px;max-width:30ch}
+.or{font-size:14px;opacity:.7;margin-top:6px}
+.joinrow{display:flex;gap:8px;align-items:center}
+.joinrow input{width:112px;letter-spacing:6px;font-weight:700;text-transform:uppercase}
+.rules{width:min(340px,100%);font-size:14px;text-align:left;opacity:.9}
+.rules summary{cursor:pointer;text-align:center;padding:6px}
+.rules p{margin:6px 0;line-height:1.4}
+
+/* ---------- лобби ---------- */
+#lobby{justify-content:center;gap:12px;text-align:center}
+.code{font-size:60px;letter-spacing:12px;padding-left:12px;color:var(--lantern);font-weight:700;text-shadow:0 0 24px #f2b84b66}
+#plist{display:grid;gap:6px;width:min(300px,100%)}
+.prow{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:#ffffff12;font-size:18px;text-align:left}
+.dot{width:10px;height:10px;border-radius:50%;background:#777;flex:0 0 auto}
+.dot.on{background:var(--good);box-shadow:0 0 8px var(--good)}
+
+/* ---------- игра ---------- */
+#game{gap:8px}
+#players{display:flex;gap:6px;width:var(--gw);overflow-x:auto;padding:2px}
+.pl{flex:1 0 auto;min-width:68px;padding:6px 10px;border-radius:12px;background:#ffffff12;display:flex;flex-direction:column;align-items:center;line-height:1.15;transition:background .3s,box-shadow .3s}
+.pl .pn{font-size:13px;max-width:11ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl .ps{font-size:22px;font-weight:700}
+.pl.cur{background:linear-gradient(#ffd978,#efb03a);color:var(--ink);box-shadow:0 0 16px #f2b84b99}
+.pl.off{opacity:.45}
+
+#turn{width:var(--gw);text-align:center;font-size:17px;font-weight:700;min-height:24px}
+#turn.mine{color:var(--lantern);text-shadow:0 0 14px #f2b84b88}
+#turn.theirs{opacity:.85}
+
+.queen{
+  width:var(--gw);display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;padding:8px 10px;border-radius:14px;
+  background:linear-gradient(#ffffff16,#ffffff08);border:1px solid #ffffff1c;
+}
+.queen .col{display:flex;flex-direction:column;gap:4px}
+.queen .gems{display:flex;flex-wrap:wrap;gap:4px;min-height:26px}
+.gchip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px 2px 4px;border-radius:20px;font-size:13px;background:#00000030}
+.col.want .gchip{box-shadow:inset 0 0 0 1.5px var(--good)}
+.col.nope .gchip{box-shadow:inset 0 0 0 1.5px var(--bad)}
+.queen .always{grid-column:1/-1;display:flex;align-items:center;gap:6px;font-size:13px;opacity:.9;flex-wrap:wrap}
+
+#msg{width:var(--gw);min-height:38px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;line-height:1.25;padding:0 4px}
+#msg.good{color:var(--good)}
+#msg.bad{color:var(--bad)}
+
+#gridwrap{position:relative;width:var(--gw)}
+#grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%}
+#grid.shake{animation:shake .7s}
+@keyframes shake{
+  0%,100%{transform:translate(0)}10%{transform:translate(-7px,3px) rotate(-.6deg)}20%{transform:translate(6px,-4px) rotate(.6deg)}
+  30%{transform:translate(-6px,4px)}40%{transform:translate(5px,-3px)}50%{transform:translate(-4px,3px)}70%{transform:translate(3px,-2px)}
+}
+.slot{position:relative;aspect-ratio:5/6;perspective:700px;border-radius:12px}
+.slot.empty{border:2px dashed #ffffff1c}
+.slot.empty .card{display:none}
+.card{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.3,.75,.3,1);cursor:pointer}
+.card.open{transform:rotateY(180deg)}
+.card.taken{transform:rotateY(180deg) translateY(-70px) scale(.25);opacity:0;transition:transform .55s ease-in,opacity .55s ease-in;pointer-events:none}
+.slot.deal .card{animation:deal .45s ease-out both}
+@keyframes deal{from{opacity:0;transform:translateY(-26px) scale(.8)}to{opacity:1;transform:none}}
+.face{position:absolute;inset:0;border-radius:12px;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.back{
+  background:
+    radial-gradient(circle at 25% 20%,#ffffff14 0 6px,transparent 7px),
+    radial-gradient(circle at 70% 70%,#ffffff10 0 9px,transparent 10px),
+    radial-gradient(circle at 80% 22%,#0000002a 0 5px,transparent 6px),
+    linear-gradient(150deg,var(--rock-hi),var(--rock) 60%,#1d2049);
+  border:2px solid #4b529a;box-shadow:inset 0 0 18px #0008,0 3px 0 #0b0a24;
+}
+.back span{font-size:clamp(18px,6vw,28px);opacity:.55;filter:grayscale(.3)}
+.front{transform:rotateY(180deg);background:linear-gradient(160deg,#fff6dc,#efd9a6);color:var(--ink);border:2px solid #d5b25a;box-shadow:0 3px 0 #8a6a20}
+.front .art{width:76%;display:flex}
+.front .art svg{width:100%;height:auto}
+.front .pts{
+  position:absolute;right:5px;bottom:5px;min-width:22px;height:22px;border-radius:11px;padding:0 6px;
+  background:var(--ink);color:var(--lantern);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center
+}
+.card.pending .front{box-shadow:0 0 0 3px var(--lantern),0 0 18px 5px #f2b84bbb}
+.card.bad .front{box-shadow:0 0 0 3px var(--bad),0 0 18px 5px #ff6b87aa;background:linear-gradient(160deg,#ffe3e8,#f3bcc6)}
+#dust{position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:12px}
+#dust span{position:absolute;top:-30px;animation:fall 1s ease-in forwards}
+@keyframes fall{to{transform:translateY(560px) rotate(220deg);opacity:.2}}
+
+.bar{width:var(--gw);display:flex;align-items:center;gap:8px;margin-top:2px}
+.bar #deck{font-size:14px;opacity:.8;flex:0 0 auto;min-width:78px}
+.bar #take{flex:1}
+
+/* ---------- финал ---------- */
+#end{justify-content:center;gap:12px;text-align:center}
+#end h2{margin:0;font-size:30px;color:var(--lantern)}
+#results{display:grid;gap:6px;width:min(320px,100%)}
+.res{display:flex;justify-content:space-between;padding:10px 14px;border-radius:12px;background:#ffffff12;font-size:18px}
+.res.win{background:linear-gradient(#ffd978,#efb03a);color:var(--ink);font-weight:700;box-shadow:0 0 18px #f2b84b88}
+
+/* ---------- служебное ---------- */
+#conn{position:fixed;top:0;left:0;right:0;background:#b3203f;color:#fff;text-align:center;font-size:14px;padding:6px;z-index:20;display:none}
+#conn.show{display:block}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#000c;color:#fff;padding:10px 16px;border-radius:20px;font-size:15px;opacity:0;pointer-events:none;transition:.25s;z-index:20}
+#toast.show{opacity:1;transform:translateX(-50%)}
+
+@media (prefers-reduced-motion:reduce){
+  .card,.card.taken{transition-duration:.01s}
+  #grid.shake,.slot.deal .card{animation:none}
+  #dust span{animation-duration:.01s}
+}
+</style>
+</head>
+<body>
+
+<div id="conn">Нет связи. Переподключаюсь…</div>
+<div id="toast"></div>
+
+<section id="home" class="screen active">
+  <div class="logo">⛏️💎</div>
+  <h1>Белоснежка<br>и гномы</h1>
+  <p class="sub">Идите в шахту, запоминайте карты и несите Белоснежке то, что она хочет.</p>
+  <input class="txt" id="nick" maxlength="14" placeholder="Твоё имя" autocomplete="nickname" aria-label="Твоё имя">
+  <button class="primary" id="create">Создать игру</button>
+  <div class="or">или войди по коду друга</div>
+  <div class="joinrow">
+    <input class="txt" id="code" maxlength="4" placeholder="КОД" autocapitalize="characters" autocomplete="off" aria-label="Код комнаты">
+    <button class="primary alt" id="join">Войти</button>
+  </div>
+  <div class="err" id="homeErr"></div>
+  <details class="rules">
+    <summary>Правила</summary>
+    <p>В шахте 16 закрытых карт. В начале раунда Белоснежка хочет один камень и не хочет другой. Ходящий гном переворачивает карты по одной.</p>
+    <p>Хотелка: очки копятся, можно рискнуть дальше. Нехотелка: обвал, все карты закрываются, очки хода сгорают, ход переходит дальше, а Белоснежка хочет ещё один камень (а потом не хочет ещё один).</p>
+    <p>Забрать можно только карты, которые Белоснежка хочет, плюс самоцвет (3) и сундук всех камней (20): их она любит всегда. После этого списки меняются, а на места забранных карт кладутся новые. Остальные карты не перемешиваются, так что запоминай, где что лежит.</p>
+    <p>Камень 1, кольцо 5, сундук камней 10. Побеждает тот, у кого больше очков, когда стопка закончится.</p>
+  </details>
+</section>
+
+<section id="lobby" class="screen">
+  <div class="lbl">Код комнаты</div>
+  <div class="code" id="roomcode"></div>
+  <button class="primary alt" id="share">Позвать друзей</button>
+  <div id="plist"></div>
+  <div class="lbl" id="lobbyHint"></div>
+  <button class="primary" id="go">Начать игру</button>
+  <button class="linkbtn" id="leaveLobby">Выйти</button>
+</section>
+
+<section id="game" class="screen">
+  <div id="players"></div>
+  <div id="turn"></div>
+  <div class="queen">
+    <div class="col want"><span class="lbl">Белоснежка хочет</span><span class="gems" id="allowed"></span></div>
+    <div class="col nope"><span class="lbl">Не хочет</span><span class="gems" id="forbidden"></span></div>
+    <div class="always" id="always"></div>
+  </div>
+  <div id="msg"></div>
+  <div id="gridwrap"><div id="grid"></div><div id="dust"></div></div>
+  <div class="bar">
+    <div id="deck"></div>
+    <button class="primary" id="take" disabled>Забрать</button>
+    <button class="ghost" id="mute" aria-label="Звук">🔊</button>
+    <button class="ghost" id="menu" aria-label="Завершить игру">⋯</button>
+  </div>
+</section>
+
+<section id="end" class="screen">
+  <div class="logo">👸</div>
+  <h2 id="winner"></h2>
+  <div id="results"></div>
+  <button class="primary" id="again">Играть снова</button>
+  <button class="linkbtn" id="leaveEnd">Выйти</button>
+</section>
+
+<script>
+(function(){
+'use strict';
+
+/* =====================================================================
+   НАЗВАНИЯ, ОЧКИ, КАРТИНКИ (SVG нарисованы кодом)
+   ===================================================================== */
+const GEMS=['topaz','ruby','emerald','sapphire'];
+const GEM_RU={topaz:'топаз',ruby:'рубин',emerald:'изумруд',sapphire:'сапфир'};
+const GEM_WITH={topaz:'топазом',ruby:'рубином',emerald:'изумрудом',sapphire:'сапфиром'};
+const GEM_MANY={topaz:'топазов',ruby:'рубинов',emerald:'изумрудов',sapphire:'сапфиров'};
+const POINTS={single:1,ring:5,chest:10,jewel:3,chestAll:20};
+const COL={topaz:['#ffd36b','#e49a14'],ruby:['#ff7391','#c0153a'],emerald:['#62e3a0','#0f9157'],sapphire:['#74a9ff','#1c49be']};
+
+function gemShape(g){
+  const [l,d]=COL[g];
+  const edge='fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1"';
+  if(g==='topaz')return `<polygon points="20,3 35,11.5 35,28.5 20,37 5,28.5 5,11.5" fill="${d}"/>
+    <polygon points="20,3 35,11.5 20,20 5,11.5" fill="${l}"/><polygon points="5,11.5 20,20 5,28.5" fill="${l}" opacity=".55"/>
+    <polygon points="20,20 35,11.5 35,28.5" fill="#000" opacity=".14"/><polygon points="20,3 35,11.5 35,28.5 20,37 5,28.5 5,11.5" ${edge}/>`;
+  if(g==='ruby')return `<polygon points="20,3 36,15 20,37 4,15" fill="${d}"/>
+    <polygon points="4,15 20,3 36,15 20,19" fill="${l}"/><polygon points="20,19 4,15 20,37" fill="${l}" opacity=".5"/>
+    <polygon points="20,3 36,15 20,37 4,15" ${edge}/>`;
+  if(g==='emerald')return `<polygon points="11,4 29,4 36,11 36,29 29,36 11,36 4,29 4,11" fill="${d}"/>
+    <rect x="11" y="11" width="18" height="18" fill="${l}"/><rect x="16.5" y="16.5" width="7" height="7" fill="${d}"/>
+    <polygon points="11,4 29,4 36,11 36,29 29,36 11,36 4,29 4,11" ${edge}/><rect x="11" y="11" width="18" height="18" ${edge}/>`;
+  return `<circle cx="20" cy="20" r="16.5" fill="${d}"/><circle cx="20" cy="20" r="10.5" fill="${l}" opacity=".85"/>
+    <ellipse cx="14" cy="12.5" rx="5" ry="3" fill="#fff" opacity=".5" transform="rotate(-30 14 12.5)"/>
+    <circle cx="20" cy="20" r="16.5" ${edge}/>`;
+}
+const gemSVG=(g,s)=>`<svg viewBox="0 0 40 40" width="${s}" height="${s}" aria-hidden="true">${gemShape(g)}</svg>`;
+const sm=(g,x,y,sc)=>`<g transform="translate(${x},${y}) scale(${sc})">${gemShape(g)}</g>`;
+const chestBody=`<rect x="5" y="26" width="38" height="18" rx="3" fill="#8a5a2b"/>
+  <path d="M5 26 Q5 14 24 14 Q43 14 43 26 Z" fill="#b57d3a"/><rect x="5" y="24.5" width="38" height="3" fill="#6b4220"/>
+  <rect x="21" y="23" width="6" height="10" rx="1.2" fill="#f4c95d"/><circle cx="24" cy="29" r="1.3" fill="#8a5a2b"/>`;
+const jewelShape=`<polygon points="10,18 17,8 31,8 38,18 24,42" fill="#c4f3ff"/>
+  <polygon points="10,18 17,8 31,8 38,18" fill="#eefcff"/><polygon points="10,18 24,42 20,18" fill="#8fdcf0"/>
+  <polygon points="38,18 24,42 28,18" fill="#7bd0ea"/><polygon points="20,18 28,18 24,42" fill="#a9e9f8"/>
+  <path d="M10 18H38M17 8L20 18L24 8L28 18L31 8" stroke="#4aa8c4" stroke-width=".8" fill="none"/>
+  <path d="M40 3l1.5 3.5L45 8l-3.5 1.5L40 13l-1.5-3.5L35 8l3.5-1.5z" fill="#ffe27a"/>`;
+const chestAllShape=GEMS.map((g,k)=>sm(g,2+k*10,3,.4)).join('')+chestBody;
+function cardSVG(c){
+  let inner='';
+  if(c.kind==='single')inner=sm(c.gem,4,4,1);
+  else if(c.kind==='ring')inner=`<circle cx="24" cy="32" r="11" fill="none" stroke="#e0aa2e" stroke-width="4.5"/>
+    <circle cx="24" cy="32" r="11" fill="none" stroke="#fff0a8" stroke-width="1.2" stroke-dasharray="7 70" stroke-dashoffset="-6"/>${sm(c.gem,11,0,.65)}`;
+  else if(c.kind==='chest')inner=sm(c.gem,3,4,.45)+sm(c.gem,15,1,.45)+sm(c.gem,27,4,.45)+chestBody;
+  else if(c.kind==='chestAll')inner=chestAllShape;
+  else inner=jewelShape;
+  return `<svg viewBox="0 0 48 48" aria-hidden="true">${inner}</svg>`;
+}
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+function cardName(c){
+  switch(c.kind){
+    case 'single':return cap(GEM_RU[c.gem]);
+    case 'ring':return 'Кольцо с '+GEM_WITH[c.gem];
+    case 'chest':return 'Сундук '+GEM_MANY[c.gem];
+    case 'jewel':return 'Самоцвет';
+    default:return 'Сундук всех камней';
+  }
+}
+const faceHTML=c=>`<div class="art">${cardSVG(c)}</div><div class="pts">${POINTS[c.kind]}</div>`;
+
+/* =====================================================================
+   ЗВУКИ (синтезируются кодом, файлов не нужно)
+   ===================================================================== */
+let ac=null,muted=false;
+function audio(){
+  if(!ac){const C=window.AudioContext||window.webkitAudioContext;if(C)ac=new C();}
+  if(ac&&ac.state==='suspended')ac.resume();
+  return ac;
+}
+function tone(f,d,type='sine',v=.12,delay=0,to){
+  if(muted)return;const a=audio();if(!a)return;
+  const t=a.currentTime+delay,o=a.createOscillator(),g=a.createGain();
+  o.type=type;o.frequency.setValueAtTime(f,t);
+  if(to)o.frequency.exponentialRampToValueAtTime(to,t+d);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+.03);
+}
+function noise(d,v=.3,freq=600){
+  if(muted)return;const a=audio();if(!a)return;
+  const n=Math.floor(a.sampleRate*d),buf=a.createBuffer(1,n,a.sampleRate),data=buf.getChannelData(0);
+  for(let i=0;i<n;i++)data[i]=(Math.random()*2-1)*(1-i/n);
+  const s=a.createBufferSource();s.buffer=buf;
+  const f=a.createBiquadFilter();f.type='lowpass';f.frequency.value=freq;
+  const g=a.createGain();g.gain.value=v;
+  s.connect(f);f.connect(g);g.connect(a.destination);s.start();
+}
+const SFX={
+  flip(){tone(480,.07,'triangle',.1,0,660);},
+  good(){tone(660,.12,'sine',.14);tone(990,.2,'sine',.14,.1);},
+  neutral(){tone(260,.13,'triangle',.1,0,190);},
+  collapse(){noise(.9,.5,500);tone(110,.7,'sawtooth',.12,0,45);},
+  take(){[523,659,784,1046].forEach((f,i)=>tone(f,.16,'triangle',.13,i*.07));},
+  deal(){tone(700,.05,'square',.035);},
+  turn(){tone(880,.1,'sine',.1);tone(1175,.14,'sine',.1,.09);},
+  win(){[523,659,784,1046,784,1046,1318].forEach((f,i)=>tone(f,.2,'triangle',.14,i*.12));}
+};
+
+/* =====================================================================
+   СЕТЬ И ИНТЕРФЕЙС
+   Страница ничего не решает сама: она показывает то, что прислал сервер,
+   и отправляет нажатия (перевернуть карту, забрать).
+   ===================================================================== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function plural(n,f){const a=Math.abs(n)%100,b=a%10;if(a>10&&a<20)return f[2];if(b>1&&b<5)return f[1];if(b===1)return f[0];return f[2];}
+const OCHKI=['очко','очка','очков'];
+const SAVE='swm_session',NAME='swm_name';
+
+let me=null,es=null,view=null,lastEv=null,prevField=null,prevCurrent=null,slots=[],gridBuilt=false;
+const grid=$('#grid');
+
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));}
+function say(t,cls){const m=$('#msg');m.textContent=t;m.className=cls||'';}
+let toastT=null;
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),2200);}
+
+async function api(path,body){
+  let r;
+  try{r=await fetch('/api/'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});}
+  catch(e){throw new Error('Нет связи с сервером');}
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.error||'Ошибка связи');
+  return j;
+}
+const action=(type,extra)=>api('action',Object.assign({room:me.room,pid:me.pid,type},extra||{}));
+
+/* --- вход --- */
+function enter(res){
+  me={room:res.room,pid:res.pid};
+  localStorage.setItem(SAVE,JSON.stringify(me));
+  connect();
+}
+function nickValue(){
+  const n=$('#nick').value.trim();
+  if(n)localStorage.setItem(NAME,n);
+  return n;
+}
+$('#create').onclick=async()=>{
+  audio();$('#homeErr').textContent='';
+  const name=nickValue();
+  if(!name){$('#homeErr').textContent='Введи своё имя';return;}
+  try{enter(await api('create',{name}));}catch(e){$('#homeErr').textContent=e.message;}
+};
+$('#join').onclick=async()=>{
+  audio();$('#homeErr').textContent='';
+  const name=nickValue(),code=$('#code').value.trim().toUpperCase();
+  if(!name){$('#homeErr').textContent='Введи своё имя';return;}
+  if(code.length!==4){$('#homeErr').textContent='Код состоит из 4 букв';return;}
+  try{enter(await api('join',{room:code,name}));}catch(e){$('#homeErr').textContent=e.message;}
+};
+$('#code').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z]/g,'');});
+
+function connect(){
+  if(es)es.close();
+  lastEv=null;prevField=null;prevCurrent=null;gridBuilt=false;
+  es=new EventSource(`/api/events?room=${encodeURIComponent(me.room)}&pid=${encodeURIComponent(me.pid)}`);
+  es.onopen=()=>$('#conn').classList.remove('show');
+  es.onmessage=e=>{try{render(JSON.parse(e.data));}catch(err){console.error(err);}};
+  es.onerror=()=>{
+    if(es&&es.readyState===2)leave();           /* комнаты больше нет */
+    else $('#conn').classList.add('show');      /* связь пропала, браузер переподключится сам */
+  };
+}
+function leave(){
+  if(es)es.close();
+  es=null;me=null;view=null;gridBuilt=false;
+  localStorage.removeItem(SAVE);
+  $('#conn').classList.remove('show');
+  show('home');
+}
+$('#leaveLobby').onclick=leave;
+$('#leaveEnd').onclick=leave;
+
+/* --- лобби --- */
+$('#share').onclick=async()=>{
+  const url=`${location.origin}/?room=${me.room}`;
+  const text=`Заходи в игру «Белоснежка и гномы»! Код: ${me.room}`;
+  if(navigator.share){
+    try{await navigator.share({title:'Белоснежка и гномы',text,url});return;}
+    catch(e){if(e.name==='AbortError')return;}
+  }
+  try{await navigator.clipboard.writeText(url);toast('Ссылка скопирована');}
+  catch(e){prompt('Скопируй ссылку:',url);}
+};
+$('#go').onclick=()=>action('start').catch(e=>toast(e.message));
+function renderLobby(v){
+  show('lobby');
+  $('#roomcode').textContent=v.code;
+  $('#plist').innerHTML=v.players.map(p=>`<div class="prow"><span class="dot ${p.online?'on':''}"></span><span>${esc(p.name)}${p.id===v.you?' (ты)':''}</span></div>`).join('');
+  const enough=v.players.length>=2;
+  $('#go').disabled=!enough;
+  $('#lobbyHint').textContent=enough?`Гномов в комнате: ${v.players.length}. Можно начинать.`:'Нужен ещё хотя бы один гном. Отправь друзьям ссылку или код.';
+}
+
+/* --- поле --- */
+function buildGrid(n){
+  grid.innerHTML='';slots=[];
+  for(let i=0;i<n;i++){
+    const s=document.createElement('div');
+    s.className='slot';
+    s.innerHTML='<div class="card"><div class="face back"><span>⛏️</span></div><div class="face front"></div></div>';
+    s.addEventListener('click',()=>onCard(i));
+    grid.appendChild(s);slots.push(s);
+  }
+  gridBuilt=true;
+}
+function resetCard(card){card.style.transition='none';card.classList.remove('taken','bad','open','pending');void card.offsetWidth;card.style.transition='';}
+const chip=g=>`<span class="gchip">${gemSVG(g,20)}${GEM_RU[g]}</span>`;
+let dealCount=0;
+function paintField(v){
+  dealCount=0;
+  v.field.forEach((cell,i)=>{
+    const s=slots[i],card=s.firstChild,pc=prevField&&prevField[i];
+    s.classList.remove('deal');
+    if(cell.s==='open'){
+      s.classList.remove('empty');
+      if(cell.kind)card.querySelector('.front').innerHTML=faceHTML(cell);
+      card.classList.add('open');
+      card.classList.toggle('taken',!!cell.taken);
+      card.classList.toggle('pending',!!cell.pending);
+      card.classList.toggle('bad',!!cell.bad);
+    }else if(cell.s==='closed'){
+      s.classList.remove('empty');
+      if(pc&&(pc.taken||pc.s==='empty')){   /* новая карта легла на место забранной */
+        resetCard(card);
+        card.style.animationDelay=(dealCount++*90)+'ms';
+        void s.offsetWidth;s.classList.add('deal');
+      }else{
+        card.classList.remove('open','pending','bad','taken');
+      }
+    }else{
+      resetCard(card);s.classList.add('empty');
+    }
+  });
+  if(dealCount)SFX.deal();
+  prevField=v.field;
+}
+
+function render(v){
+  view=v;
+  if(v.phase==='lobby'){gridBuilt=false;prevField=null;lastEv=v.ev.n;renderLobby(v);return;}
+  if(!gridBuilt)buildGrid(v.field.length);
+  if(!$('#always').innerHTML)$('#always').innerHTML=
+    `<span class="lbl">Всегда любит:</span><svg viewBox="0 0 48 48" width="26" height="26">${jewelShape}</svg><span>самоцвет</span>
+     <svg viewBox="0 0 48 48" width="26" height="26">${chestAllShape}</svg><span>сундук всех камней</span>`;
+
+  const mine=v.players[v.current].id===v.you;
+  const playing=v.phase==='play';
+
+  $('#players').innerHTML=v.players.map((p,i)=>`<div class="pl ${i===v.current&&v.phase!=='over'?'cur':''} ${p.online?'':'off'}"><span class="pn">${esc(p.name)}${p.id===v.you?' (ты)':''}</span><span class="ps">${p.score}</span></div>`).join('');
+  const t=$('#turn');
+  t.textContent=mine?'Твой ход':`Ходит ${v.players[v.current].name}`;
+  t.className=mine?'mine':'theirs';
+  $('#allowed').innerHTML=v.allowed.map(chip).join('');
+  $('#forbidden').innerHTML=v.forbidden.map(chip).join('');
+  $('#take').textContent=v.pts?`Забрать +${v.pts}`:'Забрать';
+  $('#take').disabled=!(mine&&playing&&v.pts>0);
+  $('#deck').textContent=`Стопка: ${v.deck}`;
+
+  paintField(v);
+
+  if(prevCurrent!==null&&prevCurrent!==v.current&&mine&&playing){SFX.turn();if(navigator.vibrate)navigator.vibrate(120);}
+  prevCurrent=v.current;
+
+  if(lastEv===null)lastEv=v.ev.n;
+  else if(v.ev.n>lastEv){lastEv=v.ev.n;handleEv(v.ev);}
+
+  if(v.phase==='over'){renderEnd(v);}
+  else show('game');
+}
+
+/* --- события: звуки и подписи --- */
+function handleEv(ev){
+  const later=(fn,ms)=>setTimeout(fn,ms);
+  switch(ev.type){
+    case 'started':say('Белоснежка выбрала камни на сегодня.');break;
+    case 'good':
+      SFX.flip();later(SFX.good,300);
+      say(`${ev.who}: ${cardName(ev.card)}, +${POINTS[ev.card.kind]}. Белоснежка рада.`,'good');break;
+    case 'neutral':
+      SFX.flip();later(SFX.neutral,300);
+      say(`${ev.who}: ${cardName(ev.card)}. Белоснежке всё равно.`);break;
+    case 'collapse':
+      SFX.flip();
+      later(()=>{SFX.collapse();grid.classList.add('shake');dust();later(()=>grid.classList.remove('shake'),750);},450);
+      say(`Обвал! ${ev.who}: ${cardName(ev.card)}, Белоснежка этого не хочет.${ev.lost?` Очки хода (${ev.lost}) сгорели.`:''}`,'bad');break;
+    case 'collapsed':say('Шахта закрылась. Карты лежат на своих местах.');break;
+    case 'take':SFX.take();say(`${ev.who} забирает ${ev.gained} ${plural(ev.gained,OCHKI)}!`,'good');break;
+    case 'dealt':say('Новые камни у Белоснежки. Карты на поле на своих местах.');break;
+    case 'skipped':say(`${ev.who} пропал со связи, ход пропущен.`);break;
+  }
+}
+function dust(){
+  const d=$('#dust');
+  for(let k=0;k<18;k++){
+    const e=document.createElement('span');
+    e.textContent=Math.random()<.6?'🪨':'💨';
+    e.style.left=Math.random()*92+'%';e.style.animationDelay=Math.random()*.35+'s';
+    e.style.fontSize=(14+Math.random()*16)+'px';
+    d.appendChild(e);setTimeout(()=>e.remove(),1600);
+  }
+}
+
+/* --- нажатия --- */
+function onCard(i){
+  if(!view||view.phase==='over')return;
+  const cur=view.players[view.current];
+  if(cur.id!==view.you){toast(`Сейчас ходит ${cur.name}`);return;}
+  if(view.phase!=='play')return;
+  if(view.field[i].s!=='closed')return;
+  action('flip',{i}).catch(e=>toast(e.message));
+}
+$('#take').onclick=()=>{audio();action('take').catch(e=>toast(e.message));};
+$('#mute').onclick=()=>{muted=!muted;$('#mute').textContent=muted?'🔇':'🔊';};
+$('#menu').onclick=()=>{if(confirm('Завершить игру для всех и подсчитать очки?'))action('end').catch(e=>toast(e.message));};
+$('#again').onclick=()=>action('restart').catch(e=>toast(e.message));
+
+/* --- финал --- */
+let endShownFor=null;
+function renderEnd(v){
+  const max=Math.max(...v.players.map(p=>p.score));
+  const w=v.players.filter(p=>p.score===max);
+  $('#winner').textContent=w.length===1?`Побеждает ${w[0].name}!`:`Ничья: ${w.map(p=>p.name).join(', ')}`;
+  $('#results').innerHTML=[...v.players].sort((a,b)=>b.score-a.score)
+    .map(p=>`<div class="res ${p.score===max?'win':''}"><span>${esc(p.name)}${p.id===v.you?' (ты)':''}</span><span>${p.score}</span></div>`).join('');
+  if(endShownFor!==v.ev.n){endShownFor=v.ev.n;SFX.win();}
+  show('end');
+}
+
+/* --- запуск страницы --- */
+(async function init(){
+  const q=(new URLSearchParams(location.search).get('room')||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,4);
+  if(q)$('#code').value=q;
+  $('#nick').value=localStorage.getItem(NAME)||'';
+  let saved=null;
+  try{saved=JSON.parse(localStorage.getItem(SAVE)||'null');}catch(e){}
+  if(saved&&(!q||q===saved.room)){
+    try{await api('join',{room:saved.room,pid:saved.pid});me=saved;connect();}
+    catch(e){localStorage.removeItem(SAVE);}
+  }
+})();
+})();
+</script>
+</body>
+</html>
